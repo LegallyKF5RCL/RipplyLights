@@ -21,7 +21,7 @@
 void StartUp (void);
 void Chip_Go_Fast(void);
 
-#define DUTY_START  500
+#define DUTY_START  1000
 #define DUTY_MAX    1000
 
 UINT16 Flag;
@@ -33,13 +33,12 @@ _FOSCSEL( FNOSC_FRCPLL  & IESO_OFF )
 _FOSC( POSCMD_HS & OSCIOFNC_OFF & IOL1WAY_OFF & FCKSM_CSDCMD )
 _FWDT( WDTPOST_PS8192 & WDTPRE_PR32 & WINDIS_OFF & FWDTEN_OFF)
 _FPOR( FPWRT_PWR128 & ALTI2C_ON )
-_FICD
-( ICS_PGD1 & JTAGEN_OFF )
+_FICD( ICS_PGD1 & JTAGEN_OFF )
 
 int main(int argc, char** argv) {
 
     UINT16 DutyCycle = DUTY_START;
-    UINT16 DutyCycleHold = DutyCycle;
+    //DutyCycleHold = DutyCycle;
     UINT16 Cycle = 1;
 
     Chip_Go_Fast();     //max out chipspeed
@@ -66,35 +65,35 @@ int main(int argc, char** argv) {
     ConfigIntTimer1(T1_INT_ON &
             T1_INT_PRIOR_1);
 
-    while(1)
+    while(1)        //loop forever
     {
-        if(Flag == 1)
+        if(Flag == 1)   //if timer 1 has proced
         {
-            Flag = 0;
-            if(Cycle == 1)
+            Flag = 0;   //set the flag back to 0
+            if(Cycle == 1)      //if the cycle is 1
             {
-                if(DutyCycle > 0)
+                if(DutyCycle > 0)   //and if the dutycycle is greater than 0
                 {
-                    LATBbits.LATB6 = 1;
-                    DutyCycle--;
+                    LATBbits.LATB6 = 1;     //output high on pin 15
+                    DutyCycle--;            //decrease the duty cycle by 1
                 }
-                else
+                else            //however if the dutycycle is equal to zero (predicting boundary problems)
                 {
-                    Cycle = 0;
-                    DutyCycle = DUTY_MAX - DUTY_START;
+                    Cycle = 0;      //set the cycle to 0
+                    DutyCycle = DUTY_MAX - DUTY_START;  //reset DutyCycle to a defined value
                 }
             }
-            else
+            else        //if the cycle is 0
             {
-                if(DutyCycle > 0)
+                if(DutyCycle > 0)   //and the DutyCycle is greater than 0
                 {
-                    LATBbits.LATB6 = 0;
-                    DutyCycle--;
+                    LATBbits.LATB6 = 0;     //drive pin 15 low
+                    DutyCycle--;            //decrease the duty cycle
                 }
-                else
+                else                    //if the duty cycle is 0
                 {
-                    Cycle = 1;
-                    DutyCycle = DUTY_START;
+                    Cycle = 1;              //set the cycle back to 1
+                    DutyCycle = DUTY_START;     //set the cycle back to a predetermined value
                 }
             }
         }
