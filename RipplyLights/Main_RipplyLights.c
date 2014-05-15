@@ -21,10 +21,19 @@
 void StartUp (void);
 void Chip_Go_Fast(void);
 
-#define DUTY_START  1000
-#define DUTY_MAX    1000
+#define DUTY_START  5
+#define DUTY_MAX    100
+#define INCREMENT   1
 
 UINT16 Flag;
+//UINT16 UpDown[10] = {0,0,0,0,0,0,0,0,0,0};
+//UINT16 StartCycle[10] = {DUTY_START,0,0,0,0,0,0,0,0,0};
+//UINT16 DutyCycle[10] = {DUTY_START,0,0,0,0,0,0,0,0,0};
+//UINT16 OnOff[10] = {0,0,0,0,0,0,0,0,0,0};
+UINT16 UpDown = 0;
+UINT16 StartCycle = DUTY_START;
+UINT16 DutyCycle = DUTY_START;
+UINT16 OnOff = 0;
 
 _FBS( BWRP_WRPROTECT_OFF )
 _FSS( SWRP_WRPROTECT_OFF )
@@ -37,9 +46,10 @@ _FICD( ICS_PGD1 & JTAGEN_OFF )
 
 int main(int argc, char** argv) {
 
-    UINT16 DutyCycle = DUTY_START;
+    //UINT16 DutyCycle = DUTY_START;
     //DutyCycleHold = DutyCycle;
-    UINT16 Cycle = 1;
+    UINT16 UpCycle = 1;
+    UINT16 i = 0;
 
     Chip_Go_Fast();     //max out chipspeed
     StartUp();      //run a setup of chosen modules and debug states (see "StartUp.c")
@@ -63,40 +73,58 @@ int main(int argc, char** argv) {
             );
 
     ConfigIntTimer1(T1_INT_ON &
-            T1_INT_PRIOR_1);
+            T1_INT_PRIOR_2
+            );
+
+    OpenTimer2(T2_ON &
+            T2_IDLE_CON &
+            T2_GATE_OFF &
+            T2_PS_1_256 &
+            T2_32BIT_MODE_OFF &
+            T2_SOURCE_INT
+            ,
+            3000
+            );
+
+    ConfigIntTimer2(T2_INT_ON &
+            T2_INT_PRIOR_1
+            );
 
     while(1)        //loop forever
     {
-        if(Flag == 1)   //if timer 1 has proced
-        {
-            Flag = 0;   //set the flag back to 0
-            if(Cycle == 1)      //if the cycle is 1
+//        for(i = 0; i < 10; i++)
+//        {
+            if(Flag == 1)   //if timer 1 has proced
             {
-                if(DutyCycle > 0)   //and if the dutycycle is greater than 0
+                Flag = 0;   //set the flag back to 0
+                if(UpCycle == 1)      //if the cycle is 1
                 {
-                    LATBbits.LATB6 = 1;     //output high on pin 15
-                    DutyCycle--;            //decrease the duty cycle by 1
+                    if(DutyCycle > 0)   //and if the dutycycle is greater than 0
+                    {
+                        LATBbits.LATB6 = 1;     //output high on pin 15
+                        DutyCycle--;            //decrease the duty cycle by 1
+                    }
+                    else            //however if the dutycycle is equal to zero (predicting boundary problems)
+                    {
+                        UpCycle = 0;      //set the cycle to 0
+                        DutyCycle = DUTY_MAX - StartCycle;  //load the amount of 0 time
+                    }
                 }
-                else            //however if the dutycycle is equal to zero (predicting boundary problems)
+                else        //if the cycle is 0
                 {
-                    Cycle = 0;      //set the cycle to 0
-                    DutyCycle = DUTY_MAX - DUTY_START;  //reset DutyCycle to a defined value
+                    if(DutyCycle > 0)   //and the DutyCycle is greater than 0
+                    {
+                        LATBbits.LATB6 = 0;     //drive pin 15 low
+                        DutyCycle--;            //decrease the duty cycle
+                    }
+                    else                    //if the duty cycle is 0
+                    {
+                        UpCycle = 1;              //set the cycle back to 1
+                        DutyCycle = StartCycle;     //set the cycle back to a predetermined duty cycle
+                    }
                 }
             }
-            else        //if the cycle is 0
-            {
-                if(DutyCycle > 0)   //and the DutyCycle is greater than 0
-                {
-                    LATBbits.LATB6 = 0;     //drive pin 15 low
-                    DutyCycle--;            //decrease the duty cycle
-                }
-                else                    //if the duty cycle is 0
-                {
-                    Cycle = 1;              //set the cycle back to 1
-                    DutyCycle = DUTY_START;     //set the cycle back to a predetermined value
-                }
-            }
-        }
+//        }
     }
 
 
@@ -125,10 +153,38 @@ inline void Chip_Go_Fast()      /*Maxs out the chip speed. Blocking*/
 //////////
 
 
-//for some reason this breaks PWM
 void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
 {
     _T2IF = 0;
+
+    //static UINT16 i;
+    //for(i = 0; i < 1; i++)
+    //{
+        if(UpDown == 1)
+        {
+            if(StartCycle >= (DUTY_MAX - INCREMENT))
+            {
+                StartCycle = DUTY_MAX;
+                UpDown = 0;
+            }
+            else
+            {
+                StartCycle = StartCycle + INCREMENT;
+            }
+        }
+        else
+        {
+            if(StartCycle <= INCREMENT)
+            {
+                StartCycle = 0;
+                UpDown = 1;
+            }
+            else
+            {
+                StartCycle = StartCycle - INCREMENT;
+            }
+        }
+    //}
 
     return;
 }
