@@ -21,19 +21,26 @@
 void StartUp (void);
 void Chip_Go_Fast(void);
 
-#define DUTY_START  5
-#define DUTY_MAX    100
-#define INCREMENT   1
 
-UINT16 Flag;
-//UINT16 UpDown[10] = {0,0,0,0,0,0,0,0,0,0};
-//UINT16 StartCycle[10] = {DUTY_START,0,0,0,0,0,0,0,0,0};
-//UINT16 DutyCycle[10] = {DUTY_START,0,0,0,0,0,0,0,0,0};
-//UINT16 OnOff[10] = {0,0,0,0,0,0,0,0,0,0};
-UINT16 UpDown = 0;
-UINT16 StartCycle = DUTY_START;
-UINT16 DutyCycle = DUTY_START;
-UINT16 OnOff = 0;
+#define DUTY_MIN    1
+#define DUTY_MAX    10
+#define DELTA       1
+#define MAX_CYCLES  20
+#define LENGTH      10
+
+enum Direction
+{
+    UP = 1,
+    DOWN = 0
+};
+
+UINT16 UpDown[LENGTH] = {UP,UP,UP,UP,UP,UP,UP,UP,UP,UP};
+UINT16 StartCycle[LENGTH] = {1,1,1,1,1,1,1,1,1,1};
+UINT16 DutyCycle[LENGTH] = {0,0,0,0,0,0,0,0,0,0};
+UINT16 OnOff[LENGTH] = {0,0,0,0,0,0,0,0,0,0};
+UINT16 CycleCounter = 1;
+UINT16 DutyFlag = 0;
+UINT16 CycleFlag = 0;
 
 _FBS( BWRP_WRPROTECT_OFF )
 _FSS( SWRP_WRPROTECT_OFF )
@@ -46,10 +53,12 @@ _FICD( ICS_PGD1 & JTAGEN_OFF )
 
 int main(int argc, char** argv) {
 
-    //UINT16 DutyCycle = DUTY_START;
-    //DutyCycleHold = DutyCycle;
-    UINT16 UpCycle = 1;
-    UINT16 i = 0;
+    UINT16  i,j;
+
+    for(i = 0; i < LENGTH; i++)
+    {
+        DutyCycle[i] = StartCycle[i];
+    }
 
     Chip_Go_Fast();     //max out chipspeed
     StartUp();      //run a setup of chosen modules and debug states (see "StartUp.c")
@@ -92,40 +101,32 @@ int main(int argc, char** argv) {
 
     while(1)        //loop forever
     {
-//        for(i = 0; i < 10; i++)
-//        {
-            if(Flag == 1)   //if timer 1 has proced
+        if (DutyFlag == 1)
+        {
+            for(i = 0; i < LENGTH; i++)
             {
-                Flag = 0;   //set the flag back to 0
-                if(UpCycle == 1)      //if the cycle is 1
+                if(UpDown[i] == UP)
                 {
-                    if(DutyCycle > 0)   //and if the dutycycle is greater than 0
-                    {
-                        LATBbits.LATB6 = 1;     //output high on pin 15
-                        DutyCycle--;            //decrease the duty cycle by 1
-                    }
-                    else            //however if the dutycycle is equal to zero (predicting boundary problems)
-                    {
-                        UpCycle = 0;      //set the cycle to 0
-                        DutyCycle = DUTY_MAX - StartCycle;  //load the amount of 0 time
-                    }
+                    DutyCycle[i] = DutyCycle[i] + DELTA;
                 }
-                else        //if the cycle is 0
+                else
                 {
-                    if(DutyCycle > 0)   //and the DutyCycle is greater than 0
-                    {
-                        LATBbits.LATB6 = 0;     //drive pin 15 low
-                        DutyCycle--;            //decrease the duty cycle
-                    }
-                    else                    //if the duty cycle is 0
-                    {
-                        UpCycle = 1;              //set the cycle back to 1
-                        DutyCycle = StartCycle;     //set the cycle back to a predetermined duty cycle
-                    }
+                    DutyCycle[i] = DutyCycle[i] - DELTA;
                 }
             }
-//        }
-    }
+            for(i = 0; i < LENGTH; i++)
+            {
+                if(DutyCycle)
+                {
+                   
+                }
+            }
+        }
+        //check if duty cycle needs changing
+
+
+    
+    }//end while
 
 
 
@@ -157,35 +158,6 @@ void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
 {
     _T2IF = 0;
 
-    //static UINT16 i;
-    //for(i = 0; i < 1; i++)
-    //{
-        if(UpDown == 1)
-        {
-            if(StartCycle >= (DUTY_MAX - INCREMENT))
-            {
-                StartCycle = DUTY_MAX;
-                UpDown = 0;
-            }
-            else
-            {
-                StartCycle = StartCycle + INCREMENT;
-            }
-        }
-        else
-        {
-            if(StartCycle <= INCREMENT)
-            {
-                StartCycle = 0;
-                UpDown = 1;
-            }
-            else
-            {
-                StartCycle = StartCycle - INCREMENT;
-            }
-        }
-    //}
-
     return;
 }
 
@@ -193,8 +165,6 @@ void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
 void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
 {
     _T1IF = 0;          //clear interrupt flag
-
-    Flag = 1;
 
     return;
 }
