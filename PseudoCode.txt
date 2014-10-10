@@ -1,18 +1,56 @@
 
 
--for each light
-	-is the duty cycle going up
+	-define arrays
+		-on/off states
+		-going up or going down
+		-duty cycle
+	-define constants
+		-Minimum duty cycle
+		-Maximum duty cycle
+		-Delta (how much the duty cycle changes per increment)
+		-MaxCycles
+	-define variables
+		-Cycle counter
+
+-main
+-loop forever
+	-check if the duty cycle needs to be changed
 		-yes
-			-is the duty cycle >= the max minus the increment value?
-				-yes
-					-duty cycle is equal to the max
-					-the duty cycle is now going down
-				-no
-					-duty cycle + increment
+			*a flag was set in the longer-time timer interrupt
+			-for each LED
+				-is the duty cycle increasing?
+					-yes
+						-increment the duty cycle by Delta
+					-no
+						-decrement the duty cycle by Delta
 		-no
-			-is the duty cycle <= the increment?
-				-yes
-					-the duty cycle is equal to 0
-					-the duty cycle is now going up
-				-no	
-					-duty cycle - increment
+			*the flag is clear
+		-checking duty cycle max/min
+			-for each LED
+				-is the duty cycle greater or equal than the maximum duty cycle?
+					-yes
+						-set the LED to now decrease in duty cycle
+					-no
+						-is the duty cycle less or equal to the Minimum duty cycle?
+							-yes
+								-set the LED to now increase in duty cycle
+							-no
+								-move on
+
+	-applying pseudoPWM
+		-if the cycle flag is set (interrupt)
+			-for each LED
+				-is the LEDs duty cycle greater than or equal to the cycle counter
+					-yes
+						-turn light on
+					-no	
+						-turn light off
+		-increment cycle counter
+		-is the cycle counter greater than or equal to MaxCycles?
+			-yes
+				-cycle counter is equal to 1
+			-no
+				-move on
+		-clear cycle flag
+
+
