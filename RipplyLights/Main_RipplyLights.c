@@ -23,10 +23,21 @@ void Chip_Go_Fast(void);
 
 
 #define DUTY_MIN    1
-#define DUTY_MAX    10
+#define DUTY_MAX    100
 #define DELTA       1
-#define MAX_CYCLES  20
+#define MAX_CYCLES  100
 #define LENGTH      10
+
+#define LED1
+#define LED2
+#define LED3
+#define LED4
+#define LED5
+#define LED6
+#define LED7
+#define LED8
+#define LED9
+#define LED10
 
 enum Direction
 {
@@ -35,7 +46,7 @@ enum Direction
 };
 
 UINT16 UpDown[LENGTH] = {UP,UP,UP,UP,UP,UP,UP,UP,UP,UP};
-UINT16 StartCycle[LENGTH] = {1,1,1,1,1,1,1,1,1,1};
+UINT16 StartCycle[LENGTH] = {5,10,15,20,25,30,35,40,45,50};
 UINT16 DutyCycle[LENGTH] = {0,0,0,0,0,0,0,0,0,0};
 UINT16 OnOff[LENGTH] = {0,0,0,0,0,0,0,0,0,0};
 UINT16 CycleCounter = 1;
@@ -53,7 +64,7 @@ _FICD( ICS_PGD1 & JTAGEN_OFF )
 
 int main(int argc, char** argv) {
 
-    UINT16  i,j;
+    UINT16  i;
 
     for(i = 0; i < LENGTH; i++)
     {
@@ -66,8 +77,8 @@ int main(int argc, char** argv) {
     TRISA = 0;
     TRISB = 0;
     AD1PCFGL = 0xFFFF;
-    LATA = 0xFFFF;
-    LATB = 0xFFFF;
+    LATA = 0x0000;
+    LATB = 0x0000;
 
     //while(1);
 
@@ -82,7 +93,7 @@ int main(int argc, char** argv) {
             );
 
     ConfigIntTimer1(T1_INT_ON &
-            T1_INT_PRIOR_2
+            T1_INT_PRIOR_1
             );
 
     OpenTimer2(T2_ON &
@@ -92,11 +103,11 @@ int main(int argc, char** argv) {
             T2_32BIT_MODE_OFF &
             T2_SOURCE_INT
             ,
-            3000
+            1000
             );
 
     ConfigIntTimer2(T2_INT_ON &
-            T2_INT_PRIOR_1
+            T2_INT_PRIOR_2
             );
 
     while(1)        //loop forever
@@ -105,7 +116,7 @@ int main(int argc, char** argv) {
         {
             for(i = 0; i < LENGTH; i++)
             {
-                if(UpDown[i] == UP)
+                if(UpDown[i] == 1)
                 {
                     DutyCycle[i] = DutyCycle[i] + DELTA;
                 }
@@ -116,14 +127,127 @@ int main(int argc, char** argv) {
             }
             for(i = 0; i < LENGTH; i++)
             {
-                if(DutyCycle)
+                if(DutyCycle[i] >= DUTY_MAX)
                 {
-                   
+                    UpDown[i] = DOWN;
                 }
-            }
-        }
-        //check if duty cycle needs changing
+                if(DutyCycle[i] <= DUTY_MIN)
+                {
+                    UpDown[i] = UP;
+                }
+            }//end of checking for changing the direction of the duty cycle
+            DutyFlag = 0;
+        }//end of adjusting duty cycle
 
+        if(CycleFlag == 1)
+        {
+            #ifdef LED1
+            if(DutyCycle[0] <= CycleCounter)
+            {
+                LATBbits.LATB10 = 1;
+            }
+            else
+            {
+                LATBbits.LATB10 = 0;
+            }
+            #endif
+            #ifdef LED2
+            if(DutyCycle[1] <= CycleCounter)
+            {
+                LATBbits.LATB9 = 1;
+            }
+            else
+            {
+                LATBbits.LATB9 = 0;
+            }
+            #endif
+            #ifdef LED3
+            if(DutyCycle[2] <= CycleCounter)
+            {
+                LATBbits.LATB8 = 1;
+            }
+            else
+            {
+                LATBbits.LATB8 = 0;
+            }
+            #endif
+            #ifdef LED4
+            if(DutyCycle[3] <= CycleCounter)
+            {
+                LATBbits.LATB7 = 1;
+            }
+            else
+            {
+                LATBbits.LATB7 = 0;
+            }
+            #endif
+            #ifdef LED5
+            if(DutyCycle[4] <= CycleCounter)
+            {
+                LATBbits.LATB6 = 1;
+            }
+            else
+            {
+                LATBbits.LATB6 = 0;
+            }
+            #endif
+            #ifdef LED6
+            if(DutyCycle[5] <= CycleCounter)
+            {
+                LATBbits.LATB2 = 1;
+            }
+            else
+            {
+                LATBbits.LATB2 = 0;
+            }
+            #endif
+            #ifdef LED7
+            if(DutyCycle[6] <= CycleCounter)
+            {
+                LATBbits.LATB3 = 1;
+            }
+            else
+            {
+                LATBbits.LATB3 = 0;
+            }
+            #endif
+            #ifdef LED8
+            if(DutyCycle[7] <= CycleCounter)
+            {
+                LATBbits.LATB4 = 1;
+            }
+            else
+            {
+                LATBbits.LATB4 = 0;
+            }
+            #endif
+            #ifdef LED9
+            if(DutyCycle[8] <= CycleCounter)
+            {
+                LATAbits.LATA4 = 1;
+            }
+            else
+            {
+                LATAbits.LATA4 = 0;
+            }
+            #endif
+            #ifdef LED10
+            if(DutyCycle[9] <= CycleCounter)
+            {
+                LATBbits.LATB5 = 1;
+            }
+            else
+            {
+                LATBbits.LATB5 = 0;
+            }
+            #endif
+                    CycleCounter++;
+                    if(CycleCounter >= MAX_CYCLES)
+                    {
+                        CycleCounter = 1;
+                    }
+                    CycleFlag = 0;
+        }
 
     
     }//end while
@@ -158,6 +282,8 @@ void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
 {
     _T2IF = 0;
 
+    DutyFlag = 1;
+
     return;
 }
 
@@ -165,6 +291,8 @@ void __attribute__ ((auto_psv))     _ISR    _T2Interrupt(void)
 void __attribute__ ((auto_psv))     _ISR    _T1Interrupt(void)
 {
     _T1IF = 0;          //clear interrupt flag
+
+    CycleFlag = 1;
 
     return;
 }

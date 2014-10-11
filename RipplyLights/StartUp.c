@@ -10,6 +10,8 @@
 //#define GPIO_BLINK      //all GPIOs digital and blink every half second
 //#define UART_ENABLED
 
+UINT16 i,j,k;
+
 void StartUp (void)
 {
 #ifdef GPIO_TEST
@@ -29,20 +31,24 @@ void StartUp (void)
     LATB = 0xFFFF;      //write HIGH to all B latches
     AD1PCFGL = 0xFFFF;      //make all gpios digital
 
-    ConfigIntTimer1(T1_INT_PRIOR_5 &
-                T1_INT_ON
-                );
+    while(1)
+    {
+        
+        for(i = 0; i < 0x000F; i++)
+        {
+            for(j = 0; j < 0xFFFF; j++)
+            {
+                //for(k = 0; k < 0xFFFF; k++)
+                //{
+                   asm("NOP");
+                //}
+            }
+        }
+        
+        LATA ^= 0xFFFF;
+        LATB ^= 0xFFFF;
 
-    OpenTimer1(T1_ON & 
-            T1_IDLE_CON &
-            T1_GATE_OFF &
-            T1_PS_1_256 &
-            T1_SYNC_EXT_OFF &
-            T1_SOURCE_INT
-            ,
-            39062       //proc every quarter second
-            );
-    while(1);
+    }
 #endif
 
 #ifdef UART_ENABLED
